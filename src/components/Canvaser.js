@@ -1,34 +1,33 @@
 import React from "react";
-import type from "prop-types";
 import Line from "../handlers/line";
 import Polygon from "../handlers/polygon";
 import Rectangle from "../handlers/rectangle";
-import canvasHandler from "../handlers/canvasHandler";
+import { toolNames } from "../handlers/constants";
+
+import { convertToObject } from "../util.consts";
 
 const tools = {
-  Line: Line,
-  Polygon: Polygon,
-  Rectangle: Rectangle
-};
-
-const INITIAL_STATE = {
-  Line: [],
+  Line,
+  Polygon,
+  Rectangle,
 };
 
 class Canvaser extends React.PureComponent {
-  state = {
-    undoData: [],
-    redoData: [],
-    data: INITIAL_STATE,
-    canvasData: [],
-    polygonId: canvasHandler.uuid(),
-    rectangleId: canvasHandler.uuid(),
-  };
+  constructor(props) {
+    super(props);
+    this.canvasRef = React.createRef();
+  }
 
   componentDidMount() {
-    this.ctx = this.canvas.getContext("2d");
-    if (this.props.initialData && this.props.imgSrc) {
-      this.loadDraw(this.props.initialData);
+    const { fillerColor, strokeColor, lineWidth, initialData, imgSrc } =
+      this.props;
+    this.ctx = this.canvasRef.current.getContext("2d");
+    this.ctx.strokeStyle = strokeColor;
+    this.ctx.fillStyle = fillerColor;
+    this.ctx.lineWidth = lineWidth;
+
+    if (initialData && imgSrc) {
+      this.loadDraw(initialData);
     }
   }
 
@@ -37,7 +36,6 @@ class Canvaser extends React.PureComponent {
       if (this.props.tool) {
         this.tool = tools[this.props.tool];
         this.tool.ctx = this.ctx;
-        this.tool.resetState();
       }
     }
     if (prevProps.imgSrc !== this.props.imgSrc) {
@@ -45,194 +43,86 @@ class Canvaser extends React.PureComponent {
     }
   }
 
-  onMouseDown = (e) => {
+  onMouseDown = (event) => {
+    const { fillerColor, circularColor } = this.props;
     if (this.tool) {
-      const { brushSize, color } = this.props;
-      const { tool } = this.props;
-      const { polygonId, rectangleId } = this.state;
-      if (tool !== "Line") {
-        this.createNewToolInitialData(tool);
-      }
-      const key =
-        tool === "Line"
-          ? "Line"
-          : tool === "Polygon"
-          ? `Polygon_${polygonId}`
-          : `Rectangle_${rectangleId}`;
-      this.setState({ currentKey: key });
-      this.tool.onMouseDown(this.getCursorPosition(e), {
-        brushSize,
-        color,
-        tool,
+      this.tool.onMouseDown(this.getCursorPosition(event), {
+        fillerColor,
+        circularColor,
       });
     }
   };
 
-  createNewToolInitialData = (tool) => {
-    const toolId = tool.startsWith("Poly") ? "polygonId" : "rectangleId";
-    const keyId = `${tool}_${this.state[toolId]}`;
-    if (!this.state.data[keyId]) {
-      this.setState({ data: { ...this.state.data, [keyId]: [] } });
-    }
-  };
-
-  onMouseMove = (e) => {
-    if (this.tool) {
-      this.tool.onMouseMove(this.getCursorPosition(e), () => {
-        this.setState({ polygonId: canvasHandler.uuid(), currentKey: null });
-        this.tool = null;
-        this.props.onFinishDraw && this.props.onFinishDraw();
-      });
-    }
-  };
-
-  onMouseUp = (e) => {
-    if (this.tool) {
-      const newData = this.tool.onMouseUp(this.getCursorPosition(e), () => {
-        this.setState({ rectangleId: canvasHandler.uuid(), currentKey: null });
-        this.tool = null;
-        this.props.onFinishDraw && this.props.onFinishDraw();
-      });
-      this.updateData(newData);
-    }
-  };
-
-  updateData = (dataFromTool) => {
-    const { polygonId, rectangleId } = this.state;
+  onMouseMove = (event) => {
     const { tool } = this.props;
-    const key =
-      tool === "Line"
-        ? "Line"
-        : tool === "Polygon"
-        ? `Polygon_${polygonId}`
-        : `Rectangle_${rectangleId}`;
-    // TODO: Refactor, this code to a DRY version
-    if (dataFromTool) {
-      const dataToUpdate =
-        key.startsWith("Poly") || key.startsWith("Line")
-          ? [...this.state.data[key], dataFromTool.data]
-          : [...this.state.data[key], ...dataFromTool.data];
-
-      this.setState(
-        {
-          undoData: [...this.state.undoData, this.state.data],
-          data: {
-            ...this.state.data,
-            [key]: dataToUpdate,
-          },
-          canvasData: [...this.state.canvasData, dataFromTool.canvas],
-        },
-        () => {
-          this.props.onDataUpdate && this.props.onDataUpdate(this.state.data);
-        }
+    if (this.tool) {
+      this.tool.onMouseMove(
+        this.getCursorPosition(event),
+        tool === toolNames.POLYGON
+          ? (polygonData) => {
+              this.tool = null;
+            }
+          : {}
       );
     }
   };
 
-  getCursorPosition = (e) => {
-    // top and left of canvas
-    const { top, left } = this.canvas.getBoundingClientRect();
-    // clientY and clientX coordinate inside the element that the event occur.
+  onMouseUp = (event) => {
+    const { tool, onDataUpdate } = this.props;
+    if (this.tool) {
+      const newData = this.tool.onMouseUp(this.getCursorPosition(event));
+      if (tool === toolNames.POLYGON) return;
+      this.tool = null;
+      onDataUpdate({ [tool]: newData });
+    }
+  };
+
+  getCursorPosition = (event) => {
+    const { top, left } = this.canvasRef.current.getBoundingClientRect();
     return {
-      x: Math.round(e.clientX - left),
-      y: Math.round(e.clientY - top),
+      x: Math.round(event.clientX - left),
+      y: Math.round(event.clientY - top),
     };
   };
 
-  cleanCanvas = () => {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.setState({ data: INITIAL_STATE, canvasData: [] }, () => {
-      this.props.onDataUpdate && this.props.onDataUpdate(this.state.data);
-    });
-  };
+  loadDraw = (data) => {
+    this.ctx.clearRect(
+      0,
+      0,
+      this.canvasRef.current.width,
+      this.canvasRef.current.height
+    );
+    const shapeNames = !!data ? Object.keys(data) : [];
+    shapeNames.forEach((key) => {
+      this.tool = tools[key];
+      this.tool.ctx = this.ctx;
+      if (key === "Line" || key === "Rectangle") {
+        data[key].forEach((points) => {
+          const objectivePoints=convertToObject(points);
+          this.tool.draw(objectivePoints[0], objectivePoints[1]);
+        });
+      } else {
+        data[key].forEach((points) => {
+          convertToObject(points).forEach((point, index, array) => {
+            const nextPoint = array[index + 1] || array[0];
 
-
-  forceLoadDraw = (data) => {
-    this.loadDraw(data);
-  };
-
-  // TODO: refactor this function to canvas handle
-  loadDraw = (data, byPassReset) => {
-    const X = 0,
-      Y = 1;
-    const START = 0,
-      END = 1;
-    const TOP_LEFT = 0,
-      BOTTOM_RIGHT = 2;
-    // clean the canvas
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    // loop through the data
-    data &&
-      Object.keys(data).forEach((el) => {
-        let shape = canvasHandler.getTool(el);
-        this.tool = tools[shape];
-        this.tool.ctx = this.ctx;
-        // avoid mutate initial data;
-        let newData = {};
-        if (el.startsWith("Rectan")) {
-          let dataIndex = data[el][BOTTOM_RIGHT] ? BOTTOM_RIGHT : 1;
-          newData[el] = [data[el][TOP_LEFT], data[el][dataIndex]];
-        }
-        let elPoints = el.startsWith("Rectan") ? newData[el] : data[el];
-        if (el.startsWith("Line")) {
-          elPoints.forEach((point) => {
-            this.tool.draw(
-              { x: point[START][X], y: point[START][Y] },
-              { x: point[END][X], y: point[END][Y] },
-              false,
-              {
-                options: { brushSize: this.props.brushSize },
-              }
-            );
-            this.tool.drawCrossDirection(
-              [
-                [point[START][X], point[START][Y]],
-                [point[END][X], point[END][Y]],
-              ],
-              20
-            );
-          });
-        } else {
-          elPoints.forEach((point, index, array) => {
-            const nextPoint = el.startsWith("Rect")
-              ? array[index + 1]
-              : array[index + 1] || array[0];
             if (nextPoint) {
-              this.tool.draw(
-                { x: point[X], y: point[Y] },
-                { x: nextPoint[X], y: nextPoint[Y] },
-                false,
-                {
-                  options: {
-                    brushSize: this.props.brushSize,
-                  },
-                }
-              );
+              this.tool.draw(point, nextPoint);
             }
           });
-          if (el.startsWith("Poly")) {
-            this.tool.fillGeometry(elPoints);
-          }
-        }
-      });
-    this.tool && this.tool.resetState();
+        });
+      }
+    });
     this.tool = null;
-    this.props.onFinishDraw && this.props.onFinishDraw();
-    if (!byPassReset) {
-      this.setState({ data: { ...this.state.data, ...data } }, () =>
-        this.props.onDataUpdate(this.state.data)
-      );
-    }
   };
 
   render() {
     const { width, height, imgSrc } = this.props;
-
     return (
       <React.Fragment>
         <canvas
           tabIndex="1"
-          ref={(canvas) => (this.canvas = canvas)}
+          ref={this.canvasRef}
           width={width}
           height={height}
           style={{
@@ -249,57 +139,16 @@ class Canvaser extends React.PureComponent {
   }
 }
 
-Canvaser.propTypes = {
-  /**
-   * The width of canvas
-   */
-  width: type.number,
-  /**
-   * the height of the canvas
-   */
-  height: type.number,
-  /**
-   * Background image to canvas;
-   */
-  imgSrc: type.string,
-  /**
-   * BrushSize to draw
-   */
-  brushSize: type.number,
-  /**
-   * Color of what we want draw
-   */
-  color: type.string,
-  /**
-   * CanUndo
-   */
-  canUndo: type.bool,
-  /**
-   * Shapes that you can select to draw
-   */
-  tool: type.oneOf(["Line", "Polygon", "Rectangle"]),
-  /**
-   * Is the data to be be draw when load the component
-   */
-  initialData: type.object,
-  /**
-   * This is a callback function that we be called
-   * everytime the data updates
-   */
-  onDataUpdate: type.func,
-  /**
-   * This is a callback function what we be triggered
-   * when the shape is drawn
-   */
-  onFinishDraw: type.func,
-};
+Canvaser.propTypes = {};
 
 Canvaser.defaultProps = {
   width: 300,
   height: 300,
-  brushSize: 2,
+  lineWidth: 2,
   color: "#FFFFFF",
-  canUndo: false,
+  fillerColor: "rgba(255,255,255, 0.1)",
+  circularColor: "red",
+  strokeColor: "white",
 };
 
 export default Canvaser;

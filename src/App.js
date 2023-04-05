@@ -13,17 +13,28 @@ class App extends React.Component {
     this.state = {
       config: {},
       data: {
-        Line: [],
         Rectangle: [
-          [87, 56],
-          [87, 158],
-          [181, 158],
-          [181, 56],
+          [
+            [87, 56],
+            [181, 158],
+          ],
         ],
         Polygon: [
-          [144, 42],
-          [278, 31],
-          [257, 172],
+          [
+            [144, 42],
+            [278, 31],
+            [257, 172],
+          ],
+        ],
+        Line: [
+          [
+            [348, 144],
+            [768, 466],
+          ],
+          [
+            [585, 178],
+            [395, 322],
+          ],
         ],
       },
       toolIndex: 1,
@@ -33,6 +44,7 @@ class App extends React.Component {
 
     this.containerRef = React.createRef();
     this.canvasRef = React.createRef();
+    this.jsonRef = React.createRef();
   }
 
   handleOnConfigChange = (config) => {
@@ -40,7 +52,10 @@ class App extends React.Component {
   };
 
   handleOnChange = (data) => {
-    //this.setState({ data });
+    const newArray = this.state.data[Object.keys(data)[0]];
+    newArray.push(Object.values(data)[0]);
+    const newData = { ...this.state.data, [Object.keys(data)[0]]: newArray };
+    this.setState({ data: newData });
   };
 
   handleOnClear = () => {
@@ -49,10 +64,6 @@ class App extends React.Component {
 
   handleOnSelect = (toolIndex) => {
     this.setState({ toolIndex });
-  };
-
-  handleOnFinishDraw = (data) => {
-    this.setState({ data });
   };
 
   componentDidMount() {
@@ -65,11 +76,12 @@ class App extends React.Component {
     window.addEventListener("resize", this.updateWidth);
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState) {
+    const { data } = this.state;
     this.updateWidth();
     if (!this.canvasMounted && this.canvasRef?.current) {
       //this.canvasRef.current?.cleanCanvas();
-      this.setState({ toolIndex: 0 }, () => (this.canvasMounted = true));
+      this.setState({ toolIndex: -1 }, () => (this.canvasMounted = true));
     }
   }
 
@@ -86,15 +98,18 @@ class App extends React.Component {
     }
   };
 
-  render() {
-    const { config, width, ratio, toolIndex, data } = this.state;
+  onConfigChange = (arg) => {
+  };
 
+  render() {
+    const { width, ratio, toolIndex, data } = this.state;
     return (
       <div className="flex h-screen flex-row">
         <div className="w-1/2 p-4">
           <JsonEditor
-            placeholder={config} // data to display
+            placeholder={data} // data to display
             locale={locale}
+            ref={this.jsonRef}
             onChange={this.onConfigChange}
             width="100%"
             height="auto"
@@ -121,7 +136,7 @@ class App extends React.Component {
                 height={width / ratio}
                 width={width}
                 color="yellow"
-                tool={DRAW_TOOLS[toolIndex] || DRAW_TOOLS[0]}
+                tool={DRAW_TOOLS[toolIndex]}
                 onDataUpdate={this.handleOnChange}
                 initialData={data}
               />
