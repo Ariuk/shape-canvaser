@@ -4,7 +4,7 @@ import locale from "react-json-editor-ajrm/locale/en";
 
 import { DRAW_TOOLS } from "./util.consts";
 import Controller from "./components/Controller";
-import Canvaser from "./components/Canvaser";
+import Canva from "./components/Canva";
 
 class App extends React.Component {
   constructor(props) {
@@ -37,13 +37,12 @@ class App extends React.Component {
           ],
         ],
       },
-      toolIndex: 1,
+      toolIndex: 2,
       width: 0,
       ratio: 0,
     };
 
     this.containerRef = React.createRef();
-    this.canvasRef = React.createRef();
     this.jsonRef = React.createRef();
   }
 
@@ -56,10 +55,6 @@ class App extends React.Component {
     newArray.push(Object.values(data)[0]);
     const newData = { ...this.state.data, [Object.keys(data)[0]]: newArray };
     this.setState({ data: newData, toolIndex: -1 });
-  };
-
-  handleOnClear = () => {
-    this.canvasRef.current?.cleanCanvas();
   };
 
   handleOnSelect = (toolIndex) => {
@@ -79,10 +74,6 @@ class App extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     const { data } = this.state;
     this.updateWidth();
-    if (!this.canvasMounted && this.canvasRef?.current) {
-      //this.canvasRef.current?.cleanCanvas();
-      this.setState({ toolIndex: -1 }, () => (this.canvasMounted = true));
-    }
   }
 
   componentWillUnmount() {
@@ -121,16 +112,13 @@ class App extends React.Component {
         <div ref={this.containerRef} className="w-1/2">
           {!!width && !!ratio && (
             <>
-              {this.canvasMounted && (
-                <Controller
-                  onClear={this.handleOnClear}
-                  onSelect={this.handleOnSelect}
-                  selectedIndex={toolIndex}
-                />
-              )}
+              <Controller
+                onClear={this.handleOnClear}
+                onSelect={this.handleOnSelect}
+                selectedIndex={toolIndex}
+              />
 
-              <Canvaser
-                ref={this.canvasRef}
+              <Canva
                 imgSrc={process.env.REACT_APP_DEFAULT_IMG}
                 height={width / ratio}
                 width={width}
