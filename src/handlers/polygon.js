@@ -1,7 +1,5 @@
 import Tool from "./tool";
 
-export const POLYGON = "Polygon";
-
 const polygon = { ...Tool };
 
 polygon.name = "Polygon";

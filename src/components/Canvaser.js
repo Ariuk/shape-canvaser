@@ -2,9 +2,12 @@ import React from "react";
 import Line from "../handlers/line";
 import Polygon from "../handlers/polygon";
 import Rectangle from "../handlers/rectangle";
-import { toolNames } from "../handlers/constants";
-
-import { convertToObject } from "../util.consts";
+import {
+  toolNames,
+  convertToObject,
+  getArrowPoints,
+  getPerpendicularPoints,
+} from "../handlers/utils";
 
 const tools = {
   Line,
@@ -98,8 +101,20 @@ class Canvaser extends React.PureComponent {
       this.tool.ctx = this.ctx;
       if (key === "Line" || key === "Rectangle") {
         data[key].forEach((points) => {
-          const objectivePoints=convertToObject(points);
+          const objectivePoints = convertToObject(points);
           this.tool.draw(objectivePoints[0], objectivePoints[1]);
+          if (key === "Line") {
+            const data = [points[0], points[1]];
+            const perpendicularData = getPerpendicularPoints(data, 10);
+            const arrowData = getArrowPoints(
+              perpendicularData[0],
+              perpendicularData[1],
+              20
+            );
+            this.tool.draw(perpendicularData[0], perpendicularData[1]);
+            this.tool.draw(arrowData[1], arrowData[0]);
+            this.tool.draw(arrowData[1], arrowData[2]);
+          }
         });
       } else {
         data[key].forEach((points) => {

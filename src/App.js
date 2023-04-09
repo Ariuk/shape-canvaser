@@ -55,7 +55,7 @@ class App extends React.Component {
     const newArray = this.state.data[Object.keys(data)[0]];
     newArray.push(Object.values(data)[0]);
     const newData = { ...this.state.data, [Object.keys(data)[0]]: newArray };
-    this.setState({ data: newData });
+    this.setState({ data: newData, toolIndex: -1 });
   };
 
   handleOnClear = () => {
@@ -98,8 +98,7 @@ class App extends React.Component {
     }
   };
 
-  onConfigChange = (arg) => {
-  };
+  onConfigChange = (arg) => {};
 
   render() {
     const { width, ratio, toolIndex, data } = this.state;
