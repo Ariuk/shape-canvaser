@@ -1,6 +1,6 @@
 import { Eraser, Line, Polygon, Rectangle } from "../icon";
 
-export default function Controller({ onClear, onSelect, selectedIndex }) {
+export default function Controller({ onClear, onSelect, selectedIndex, onDragStart }) {
   const classNames = [
     "p-4 inline-block cursor-pointer",
     "p-4 inline-block cursor-pointer bg-blue-500 rounded",
@@ -31,6 +31,7 @@ export default function Controller({ onClear, onSelect, selectedIndex }) {
           <div
             key={index}
             className={tool.className}
+            onDragStart={onDragStart}
             onClick={() => handleOnSelect(index)}
           >
             {tool.icon}
