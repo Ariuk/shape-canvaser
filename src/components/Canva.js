@@ -1,10 +1,33 @@
-import React, { useRef } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import { Layer, Stage, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
+import {
+  getRectangularPositionAndSize,
+  getPointsFromRectangularPositionAndSize,
+  convertToArray,
+  TOOL_NAMES,
+} from "../util.consts";
+
+import Controller from "./Controller";
 import { Polygon, Line, Rectangle } from "./Shapes";
 
-export default function Canva(props) {
-  const { imgSrc, tool } = props;
+const Canva = (props) => {
+  const stageRef = useRef(null);
+  const {
+    imgSrc,
+    isLineSelected,
+    height,
+    width,
+    toolIndex,
+    onSelect,
+    onAddRectangle,
+    source,
+    onDelete,
+    ...shapeProps
+  } = props;
+
+  const rectangleStartData = useRef(null);
+  const myRefs = useRef([]);
   const [image] = useImage(imgSrc);
   const polygonRef = useRef(null);
 
@@ -41,21 +64,119 @@ export default function Canva(props) {
     });
   };
 
+  const handleDrop = useCallback((event) => {
+    if (rectangleStartData.current) {
+      const { offsetX, offsetY, clientWidth, clientHeight } = JSON.parse(
+        rectangleStartData.current
+      );
+      stageRef.current.setPointersPositions(event);
+
+      const coords = stageRef.current.getPointerPosition();
+      const data = {
+        x: coords.x - offsetX,
+        y: coords.y - offsetY,
+        width: clientWidth,
+        height: clientHeight,
+      };
+      onAddRectangle(
+        convertToArray(getPointsFromRectangularPositionAndSize(data))
+      );
+    }
+  }, []);
+
+  const handleDragOver = (event) => event.preventDefault();
+
+  const handleDragStart = (event) => {
+    const offsetX = event.nativeEvent.offsetX;
+    const offsetY = event.nativeEvent.offsetY;
+
+    const clientWidth = event.target.clientWidth;
+    const clientHeight = event.target.clientHeight;
+
+    rectangleStartData.current = JSON.stringify({
+      offsetX,
+      offsetY,
+      clientWidth,
+      clientHeight,
+    });
+  };
+
+  const handleOnDelete = () => {
+    const indexRef = myRefs.current.findIndex((ref) => ref.selected);
+    if (indexRef !== -1) {
+      const { unSelect, shape, index } = myRefs.current[indexRef];
+      typeof unSelect === "function" && unSelect();
+      onDelete(shape, index);
+    }
+  };
+
+  const clearSelection = (callback) => {
+    myRefs.current?.forEach(
+      (ref) => typeof ref?.unSelect === "function" && ref.unSelect()
+    );
+    typeof callback === "function" && callback();
+  };
   return (
-    <Stage
-      {...props}
-      onClick={() => {
-        console.log("clicked");
-      }}
-      onMouseDown={handleClick}
-      onMouseMove={handleMouseMove}
-    >
-      <Layer>
-        <KonvaImage image={image} {...props} />
-      </Layer>
-      {tool === "Polygon" && <Polygon ref={polygonRef} />}
-      {tool === "Line" && <Line {...props} />}
-      {tool === "Rectangle" && <Rectangle {...props} />}
-    </Stage>
+    <div onDragOver={handleDragOver} onDrop={handleDrop}>
+      <Controller
+        onClear={handleOnDelete}
+        onSelect={onSelect}
+        selectedIndex={toolIndex}
+        onDragStart={handleDragStart}
+      />
+      <Stage
+        ref={stageRef}
+        onClick={clearSelection}
+        onMouseDown={handleClick}
+        height={height}
+        width={width}
+        onMouseMove={handleMouseMove}
+      >
+        <Layer>
+          <KonvaImage image={image} height={height} width={width} />
+        </Layer>
+        {Object.keys(source).map((key) =>
+          source[key].map((points, index) => {
+            const randomKey = Math.random();
+            switch (key) {
+              default:
+                break;
+              case TOOL_NAMES.Line:
+                return (
+                  <Line
+                    points={[...points[0], ...points[1]]}
+                    key={`${TOOL_NAMES.Line}-${randomKey}`}
+                    index={index}
+                    onClearSelection={clearSelection}
+                    ref={(ref) => myRefs.current.push(ref)}
+                    {...shapeProps}
+                    height={height}
+                    width={width}
+                  />
+                );
+              case TOOL_NAMES.Rectangle:
+                return (
+                  <Rectangle
+                    {...getRectangularPositionAndSize(points)}
+                    index={index}
+                    key={`${Rectangle}-${randomKey}`}
+                    onClearSelection={clearSelection}
+                    ref={(ref) => myRefs.current.push(ref)}
+                    {...shapeProps}
+                  />
+                );
+            }
+          })
+        )}
+      </Stage>
+    </div>
   );
-}
+};
+
+Canva.defaultProps = {
+  fill: "rgba(255, 0, 0, 0.1)",
+  stroke: "white",
+  strokeWidth: 10,
+};
+
+export default Canva;

@@ -2,8 +2,6 @@ import React from "react";
 import JsonEditor from "react-json-editor-ajrm";
 import locale from "react-json-editor-ajrm/locale/en";
 
-import { DRAW_TOOLS } from "./util.consts";
-import Controller from "./components/Controller";
 import Canva from "./components/Canva";
 
 class App extends React.Component {
@@ -28,8 +26,8 @@ class App extends React.Component {
         ],
         Line: [
           [
-            [348, 144],
-            [768, 466],
+            [50, 50],
+            [244, 112],
           ],
           [
             [585, 178],
@@ -91,12 +89,35 @@ class App extends React.Component {
 
   onConfigChange = (arg) => {};
 
+  handleOnAddRectangle = (rectangle) => {
+    const { data } = this.state;
+    const newRectangles = data.Rectangle;
+    newRectangles.push(rectangle);
+    this.setState({ data: { ...data, Rectangle: newRectangles } });
+  };
+
+  handleOnTransform = (points, shape, index) => {
+    const { data } = this.state;
+    const newShapes = data[shape];
+    newShapes[index] = points;
+    this.setState({ data: { ...data, [shape]: newShapes } });
+  };
+
+  handleOnDelete = (shape, index) => {
+    const { data } = this.state;
+    const newShapes = data[shape];
+    newShapes.splice(index, 1);
+    this.setState({ data: { ...data, [shape]: newShapes } });
+  };
+
   render() {
     const { width, ratio, toolIndex, data } = this.state;
+    const jsonKey = Math.random();
     return (
-      <div className="flex h-screen flex-row">
+      <div className="flex h-screen flex-row bg-red-300">
         <div className="w-1/2 p-4">
           <JsonEditor
+            key={`key-${jsonKey}`}
             placeholder={data} // data to display
             locale={locale}
             ref={this.jsonRef}
@@ -112,20 +133,16 @@ class App extends React.Component {
         <div ref={this.containerRef} className="w-1/2">
           {!!width && !!ratio && (
             <>
-              <Controller
-                onClear={this.handleOnClear}
-                onSelect={this.handleOnSelect}
-                selectedIndex={toolIndex}
-              />
-
               <Canva
+                onSelect={this.handleOnSelect}
                 imgSrc={process.env.REACT_APP_DEFAULT_IMG}
                 height={width / ratio}
                 width={width}
-                color="yellow"
-                tool={DRAW_TOOLS[toolIndex]}
-                onDataUpdate={this.handleOnChange}
-                initialData={data}
+                onAddRectangle={this.handleOnAddRectangle}
+                onDelete={this.handleOnDelete}
+                onTransform={this.handleOnTransform}
+                toolIndex={toolIndex}
+                source={data}
               />
             </>
           )}

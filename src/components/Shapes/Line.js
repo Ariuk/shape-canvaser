@@ -1,16 +1,31 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Layer, Transformer, Line as KonvaLine } from "react-konva";
 
-export default function Line(props){
-  const {
-    fill = "rgba(255,255,255, 0.1)",
-    stroke = "white",
-    coords = { x: 15, y: 10 },
-  } = props;
+import { TOOL_NAMES } from "../../util.consts";
+
+const Line = forwardRef((props, ref) => {
+  const { onTransform, index, onClearSelection, ...rest } = props;
   const [selected, select] = useState(false);
-  const [points, setPoints] = useState([0, 0, 100, 100]);
   const transformerRef = useRef(null);
   const shapeRef = useRef(null);
+  const layerRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    unSelect: () => {
+      select(false);
+    },
+    selected,
+    index,
+    shape: TOOL_NAMES.Line,
+  }));
+
+  const { points } = rest;
 
   useEffect(() => {
     if (selected) {
@@ -21,53 +36,54 @@ export default function Line(props){
 
   const handleSelect = (event) => {
     event.cancelBubble = true;
-    select(true);
+    if (selected) return;
+    onClearSelection(() => select(true));
   };
 
-  const handleDrag = (event) => {
-    setPoints([
-      event.target.x(),
-      event.target.y(),
-      event.target.x() + 100,
-      event.target.y() + 100,
-    ]);
+  const handleDragEnd = (event) => {
+    const distanceX = Math.round(event.target.x());
+    const distanceY = Math.round(event.target.y());
+    const newPosition = [
+      [points[0] + distanceX, points[1] + distanceY],
+      [points[2] + distanceX, points[3] + distanceY],
+    ];
+    onTransform(newPosition, TOOL_NAMES.Line, index);
   };
+
   const handleTransform = () => {
     const node = shapeRef.current;
-    const scaleX = node.scaleX();
-    const scaleY = node.scaleY();
-    node.scaleX(1);
-    node.scaleY(1);
-
-    setPoints([
-      node.points()[0] * scaleX,
-      node.points()[1] * scaleY,
-      node.points()[2] * scaleX,
-      node.points()[3] * scaleY,
-    ]);
+    const scaleX = Math.round(node.scaleX());
+    const scaleY = Math.round(node.scaleY());
+    const newPosition = [
+      [
+        Math.round(node.x()) + node.points()[0] * scaleX,
+        Math.round(node.y()) + node.points()[1] * scaleY,
+      ],
+      [
+        Math.round(node.x()) + node.points()[2] * scaleX,
+        Math.round(node.y()) + node.points()[3] * scaleY,
+      ],
+    ];
+    onTransform(newPosition, TOOL_NAMES.Line, index);
   };
 
-  const boundBoxCallbackForRectangle = (oldBox, newBox) => {
-    return newBox;
-  };
   return (
-    <Layer>
+    <Layer style={{ backgroundColor: "orange" }} ref={layerRef}>
       <KonvaLine
         onClick={handleSelect}
-        onTap={handleSelect}
         onDragStart={handleSelect}
-        points={points}
         ref={shapeRef}
-        stroke={stroke}
-        strokeWidth={5}
         draggable
-        onDragEnd={handleDrag}
+        lineCap="round"
+        onDragEnd={handleDragEnd}
         onTransformEnd={handleTransform}
-        boundBoxFunc={boundBoxCallbackForRectangle}
+        {...rest}
       />
       {selected && (
         <Transformer anchorSize={5} borderDash={[6, 2]} ref={transformerRef} />
       )}
     </Layer>
   );
-}
+});
+
+export default Line;
