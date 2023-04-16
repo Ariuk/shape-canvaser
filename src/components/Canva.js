@@ -116,6 +116,7 @@ const Canva = (props) => {
     );
     typeof callback === "function" && callback();
   };
+
   return (
     <div onDragOver={handleDragOver} onDrop={handleDrop}>
       <Controller
@@ -148,7 +149,9 @@ const Canva = (props) => {
                     key={`${TOOL_NAMES.Line}-${randomKey}`}
                     index={index}
                     onClearSelection={clearSelection}
-                    ref={(ref) => myRefs.current.push(ref)}
+                    ref={(ref) => {
+                      renewRef(myRefs.current, ref);
+                    }}
                     {...shapeProps}
                     height={height}
                     width={width}
@@ -161,7 +164,9 @@ const Canva = (props) => {
                     index={index}
                     key={`${Rectangle}-${randomKey}`}
                     onClearSelection={clearSelection}
-                    ref={(ref) => myRefs.current.push(ref)}
+                    ref={(ref) => {
+                      renewRef(myRefs.current, ref);
+                    }}
                     {...shapeProps}
                   />
                 );
@@ -180,3 +185,20 @@ Canva.defaultProps = {
 };
 
 export default Canva;
+
+function renewRef(refArray, ref) {
+  if (!ref) return;
+  if (refArray.length === 0) {
+    refArray.push(ref);
+    return;
+  }
+  const { index, shape } = ref;
+  const indexRef = refArray.findIndex(
+    (ref) => ref.index === index && ref.shape === shape
+  );
+  if (indexRef > -1) {
+    refArray[indexRef] = ref;
+  }else{
+    refArray.push(ref);
+  }
+}
