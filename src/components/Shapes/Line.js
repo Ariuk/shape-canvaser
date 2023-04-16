@@ -52,30 +52,50 @@ const Line = forwardRef((props, ref) => {
 
   const handleTransform = () => {
     const node = shapeRef.current;
-    const scaleX = Math.round(node.scaleX());
-    const scaleY = Math.round(node.scaleY());
-    const newPosition = [
+
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+
+    // Get the original points of the shape
+    const originalPoints = node.points();
+
+    // Calculate the new positions of the points after transformation
+    const newPoints = originalPoints.map((point, index) => {
+      // Check if the index is even (x coordinate)
+      if (index % 2 === 0) {
+        return Math.round(node.x() + point * scaleX);
+      }
+      // Check if the index is odd (y coordinate)
+      else {
+        return Math.round(node.y() + point * scaleY);
+      }
+    });
+    onTransform(
       [
-        Math.round(node.x()) + node.points()[0] * scaleX,
-        Math.round(node.y()) + node.points()[1] * scaleY,
+        [newPoints[0], newPoints[1]],
+        [newPoints[2], newPoints[3]],
       ],
-      [
-        Math.round(node.x()) + node.points()[2] * scaleX,
-        Math.round(node.y()) + node.points()[3] * scaleY,
-      ],
-    ];
-    onTransform(newPosition, TOOL_NAMES.Line, index);
+      TOOL_NAMES.Line,
+      index
+    );
+  };
+
+  const handleTransformStart = () => {
+    const node = shapeRef.current;
+    node.setAttrs({
+      strokeWidth: 1,
+    });
   };
 
   return (
     <Layer style={{ backgroundColor: "orange" }} ref={layerRef}>
       <KonvaLine
         onClick={handleSelect}
-        onDragStart={handleSelect}
         ref={shapeRef}
         draggable
         lineCap="round"
         onDragEnd={handleDragEnd}
+        onTransformStart={handleTransformStart}
         onTransformEnd={handleTransform}
         {...rest}
       />
