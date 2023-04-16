@@ -55,21 +55,30 @@ const Line = forwardRef((props, ref) => {
 
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
-
+    const rotation = node.rotation();
+  
     // Get the original points of the shape
     const originalPoints = node.points();
-
+  
+    // Convert the rotation angle from degrees to radians
+    const rotationRad = (rotation * Math.PI) / 180;
+  
+    // Calculate the cosine and sine of the rotation angle
+    const cosTheta = Math.cos(rotationRad);
+    const sinTheta = Math.sin(rotationRad);
+  
     // Calculate the new positions of the points after transformation
     const newPoints = originalPoints.map((point, index) => {
       // Check if the index is even (x coordinate)
       if (index % 2 === 0) {
-        return Math.round(node.x() + point * scaleX);
+        return Math.round(node.x() + (cosTheta * point - sinTheta * point) * scaleX);
       }
       // Check if the index is odd (y coordinate)
       else {
-        return Math.round(node.y() + point * scaleY);
+        return Math.round(node.y() + (sinTheta * point + cosTheta * point) * scaleY);
       }
     });
+    
     onTransform(
       [
         [newPoints[0], newPoints[1]],
