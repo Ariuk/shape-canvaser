@@ -10,11 +10,19 @@ import { Layer, Transformer, Line as KonvaLine } from "react-konva";
 import { TOOL_NAMES } from "../../util.consts";
 
 const Line = forwardRef((props, ref) => {
-  const { onTransform, index, onClearSelection, ...rest } = props;
+  const {
+    onTransform,
+    index,
+    onClearSelection,
+    points: poinsProp,
+    ...rest
+  } = props;
   const [selected, select] = useState(false);
   const transformerRef = useRef(null);
   const shapeRef = useRef(null);
   const layerRef = useRef(null);
+
+  const [points, setPoints] = useState(poinsProp?.flat(1));
 
   useImperativeHandle(ref, () => ({
     unSelect: () => {
@@ -23,9 +31,9 @@ const Line = forwardRef((props, ref) => {
     selected,
     index,
     shape: TOOL_NAMES.Line,
+    setPoints,
+    points,
   }));
-
-  const { points } = rest;
 
   useEffect(() => {
     if (selected) {
@@ -44,8 +52,8 @@ const Line = forwardRef((props, ref) => {
     const distanceX = Math.round(event.target.x());
     const distanceY = Math.round(event.target.y());
     const newPosition = [
-      [points[0] + distanceX, points[1] + distanceY],
-      [points[2] + distanceX, points[3] + distanceY],
+      [poinsProp[0] + distanceX, poinsProp[1] + distanceY],
+      [poinsProp[2] + distanceX, poinsProp[3] + distanceY],
     ];
     onTransform(newPosition, TOOL_NAMES.Line, index);
   };
@@ -56,29 +64,33 @@ const Line = forwardRef((props, ref) => {
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
     const rotation = node.rotation();
-  
+
     // Get the original points of the shape
     const originalPoints = node.points();
-  
+
     // Convert the rotation angle from degrees to radians
     const rotationRad = (rotation * Math.PI) / 180;
-  
+
     // Calculate the cosine and sine of the rotation angle
     const cosTheta = Math.cos(rotationRad);
     const sinTheta = Math.sin(rotationRad);
-  
+
     // Calculate the new positions of the points after transformation
     const newPoints = originalPoints.map((point, index) => {
       // Check if the index is even (x coordinate)
       if (index % 2 === 0) {
-        return Math.round(node.x() + (cosTheta * point - sinTheta * point) * scaleX);
+        return Math.round(
+          node.x() + (cosTheta * point - sinTheta * point) * scaleX
+        );
       }
       // Check if the index is odd (y coordinate)
       else {
-        return Math.round(node.y() + (sinTheta * point + cosTheta * point) * scaleY);
+        return Math.round(
+          node.y() + (sinTheta * point + cosTheta * point) * scaleY
+        );
       }
     });
-    
+
     onTransform(
       [
         [newPoints[0], newPoints[1]],
@@ -92,7 +104,7 @@ const Line = forwardRef((props, ref) => {
   const handleTransformStart = () => {
     const node = shapeRef.current;
     node.setAttrs({
-      strokeWidth: 1,
+      strokeWidth: 5,
     });
   };
 
@@ -106,7 +118,10 @@ const Line = forwardRef((props, ref) => {
         onDragEnd={handleDragEnd}
         onTransformStart={handleTransformStart}
         onTransformEnd={handleTransform}
+        points={points}
         {...rest}
+        strokeWidth={10}
+        stroke="white"
       />
       {selected && (
         <Transformer anchorSize={5} borderDash={[6, 2]} ref={transformerRef} />

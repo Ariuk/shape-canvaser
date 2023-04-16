@@ -28,41 +28,61 @@ const Canva = (props) => {
   const myRefs = useRef([]);
   const [image] = useImage(imgSrc);
   const polygonRef = useRef(null);
+  const lineRef = useRef(null);
   const [toolIndex, setToolIndex] = useState(-1);
 
+  const getMousePos = (stage) => {
+    return [
+      Math.round(stage.getPointerPosition().x),
+      Math.round(stage.getPointerPosition().y),
+    ];
+  };
+
   const handleClick = (event) => {
-    if (!polygonRef.current) return;
-    const {
-      state: { points, isMouseOverStartPoint, isFinished },
-      getMousePos,
-    } = polygonRef.current;
+    if (!polygonRef.current && !lineRef.current) return;
     const stage = event.target.getStage();
-    const mousePos = getMousePos(stage);
-
-    if (isFinished) {
-      return;
-    }
-
-    if (isMouseOverStartPoint && points.length >= 3) {
-      clearSelection(() => {
-        onAddShape(points, TOOL_NAMES.Polygon);
+    if (!!polygonRef?.current) {
+      const {
+        state: { points, isMouseOverStartPoint, isFinished },
+      } = polygonRef.current;
+      const mousePos = getMousePos(stage);
+      if (isFinished) {
+        return;
+      }
+      if (isMouseOverStartPoint && points.length >= 3) {
+        clearSelection(() => {
+          onAddShape(points, TOOL_NAMES.Polygon);
+          handleOnSelectTool(-1);
+        });
+      } else {
+        polygonRef.current.setState({
+          points: [...points, mousePos],
+        });
+      }
+    } else if (!!lineRef?.current) {
+      const { setPoints, points } = lineRef.current;
+      const mousePos = getMousePos(stage);
+      if (Array.isArray(points) && points.length > 2) {
+        onAddShape([[points[0], points[1]], [mousePos]], TOOL_NAMES.Line);
         handleOnSelectTool(-1);
-      });
-    } else {
-      polygonRef.current.setState({
-        points: [...points, mousePos],
-      });
+      } else {
+        setPoints([...mousePos]);
+      }
     }
   };
   const handleMouseMove = (event) => {
-    if (!polygonRef.current) return;
-    const { getMousePos } = polygonRef.current;
+    if (!polygonRef.current && !lineRef.current) return;
     const stage = event.target.getStage();
     const mousePos = getMousePos(stage);
-
-    polygonRef.current.setState({
+    polygonRef?.current?.setState({
       curMousePos: mousePos,
     });
+    if (!!lineRef.current) {
+      const { setPoints, points } = lineRef.current;
+      if (Array.isArray(points) && points.length > 0) {
+        setPoints([points[0], points[1], ...mousePos]);
+      }
+    }
   };
 
   const handleDrop = useCallback((event) => {
@@ -196,6 +216,9 @@ const Canva = (props) => {
         )}
         {TOOL_NAMES.Polygon === Object.values(TOOL_NAMES)[toolIndex] && (
           <Polygon ref={polygonRef} />
+        )}
+        {TOOL_NAMES.Line === Object.values(TOOL_NAMES)[toolIndex] && (
+          <Line ref={lineRef} />
         )}
       </Stage>
     </div>

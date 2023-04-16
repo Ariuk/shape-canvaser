@@ -24,12 +24,6 @@ export default class Polygon extends React.Component {
     this.setState({ selected: false });
   }
 
-  getMousePos = (stage) => {
-    return [
-      Math.round(stage.getPointerPosition().x),
-      Math.round(stage.getPointerPosition().y),
-    ];
-  };
 
   handleOnFinishDraw(event) {
     const { points, isFinished } = this.state;
@@ -79,7 +73,7 @@ export default class Polygon extends React.Component {
       shapeRef,
       props,
     } = this;
-
+    
     const flattenedPoints = points
       .concat(isFinished ? [] : curMousePos)
       .reduce((a, b) => a.concat(b), []);
