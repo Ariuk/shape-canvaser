@@ -18,8 +18,6 @@ const Canva = (props) => {
     isLineSelected,
     height,
     width,
-    toolIndex,
-    onSelect,
     onAddRectangle,
     source,
     onDelete,
@@ -30,6 +28,7 @@ const Canva = (props) => {
   const myRefs = useRef([]);
   const [image] = useImage(imgSrc);
   const polygonRef = useRef(null);
+  const [toolIndex, setToolIndex] = useState(-1);
 
   const handleClick = (event) => {
     if (!polygonRef.current) return;
@@ -117,11 +116,15 @@ const Canva = (props) => {
     typeof callback === "function" && callback();
   };
 
+  const handleOnSelectTool = (index) => {
+    setToolIndex(index);
+  };
+
   return (
     <div onDragOver={handleDragOver} onDrop={handleDrop}>
       <Controller
         onClear={handleOnDelete}
-        onSelect={onSelect}
+        onSelect={handleOnSelectTool}
         selectedIndex={toolIndex}
         onDragStart={handleDragStart}
       />
@@ -173,6 +176,9 @@ const Canva = (props) => {
             }
           })
         )}
+        {TOOL_NAMES.Polygon === Object.values(TOOL_NAMES)[toolIndex] && (
+          <Polygon ref={polygonRef} />
+        )}
       </Stage>
     </div>
   );
@@ -198,7 +204,7 @@ function renewRef(refArray, ref) {
   );
   if (indexRef > -1) {
     refArray[indexRef] = ref;
-  }else{
+  } else {
     refArray.push(ref);
   }
 }
