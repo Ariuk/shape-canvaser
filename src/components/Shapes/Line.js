@@ -135,12 +135,15 @@ const Line = forwardRef((props, ref) => {
         strokeWidth={10}
         stroke="white"
       />
-      <KonvaLine
-        points={perpendicularData}
-        strokeWidth={10}
-        lineCap="butt"
-        stroke="white"
-      />
+      {!selected && (
+        <KonvaLine
+          points={perpendicularData}
+          strokeWidth={10}
+          draggable
+          lineCap="butt"
+          stroke="white"
+        />
+      )}
       {selected && (
         <Transformer anchorSize={5} borderDash={[6, 2]} ref={transformerRef} />
       )}
