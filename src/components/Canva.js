@@ -18,7 +18,7 @@ const Canva = (props) => {
     isLineSelected,
     height,
     width,
-    onAddRectangle,
+    onAddShape,
     source,
     onDelete,
     ...shapeProps
@@ -42,9 +42,11 @@ const Canva = (props) => {
     if (isFinished) {
       return;
     }
+
     if (isMouseOverStartPoint && points.length >= 3) {
-      polygonRef.current.setState({
-        isFinished: true,
+      clearSelection(() => {
+        onAddShape(points, TOOL_NAMES.Polygon);
+        handleOnSelectTool(-1);
       });
     } else {
       polygonRef.current.setState({
@@ -77,8 +79,9 @@ const Canva = (props) => {
         width: clientWidth,
         height: clientHeight,
       };
-      onAddRectangle(
-        convertToArray(getPointsFromRectangularPositionAndSize(data))
+      onAddShape(
+        convertToArray(getPointsFromRectangularPositionAndSize(data)),
+        TOOL_NAMES.Rectangle
       );
     }
   }, []);
@@ -101,7 +104,9 @@ const Canva = (props) => {
   };
 
   const handleOnDelete = () => {
-    const indexRef = myRefs.current.findIndex((ref) => ref.selected);
+    const indexRef = myRefs.current.findIndex(
+      (ref) => ref.selected || ref.state?.selected
+    );
     if (indexRef !== -1) {
       const { unSelect, shape, index } = myRefs.current[indexRef];
       typeof unSelect === "function" && unSelect();
@@ -145,6 +150,19 @@ const Canva = (props) => {
             switch (key) {
               default:
                 break;
+              case TOOL_NAMES.Polygon:
+                return (
+                  <Polygon
+                    points={points}
+                    key={`${TOOL_NAMES.Polygon}-${randomKey}`}
+                    index={index}
+                    onClearSelection={clearSelection}
+                    ref={(ref) => {
+                      renewRef(myRefs.current, ref);
+                    }}
+                    {...shapeProps}
+                  />
+                );
               case TOOL_NAMES.Line:
                 return (
                   <Line
@@ -186,7 +204,7 @@ const Canva = (props) => {
 
 Canva.defaultProps = {
   fill: "rgba(255, 0, 0, 0.1)",
-  stroke: "white",
+  stroke: "#FFFFFF",
   strokeWidth: 10,
 };
 

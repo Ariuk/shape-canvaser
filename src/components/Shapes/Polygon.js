@@ -1,22 +1,27 @@
 import React from "react";
-import { Layer, Line as KonvaLine, Rect } from "react-konva";
+import { Layer, Line as KonvaLine } from "react-konva";
 import PolygonEdge from "./PolygonEdge";
+import { TOOL_NAMES } from "../../util.consts";
 
 export default class Polygon extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      points: [],
+      points: props.points?.length > 0 ? props.points : [],
       curMousePos: [0, 0],
       isMouseOverStartPoint: false,
-      isFinished: false,
+      isFinished: props.points?.length > 0,
     };
     this.handleDragMove = this.handleDragMove.bind(this);
     this.handleOnFinishDraw = this.handleOnFinishDraw.bind(this);
+    this.unSelect = this.unSelect.bind(this);
+    this.shapeRef = React.createRef();
+    this.shape = TOOL_NAMES.Polygon;
+    this.index = props.index;
   }
 
-  componentDidMount() {
-    console.log(window.innerHeight);
+  unSelect() {
+    this.setState({ selected: false });
   }
 
   getMousePos = (stage) => {
@@ -40,7 +45,7 @@ export default class Polygon extends React.Component {
   };
 
   handleDragMove = (event) => {
-    const {points } = this.state;
+    const { points } = this.state;
     const index = event.target.index - 1;
     const pos = [event.target.attrs.x, event.target.attrs.y];
     this.setState({
@@ -48,26 +53,62 @@ export default class Polygon extends React.Component {
     });
   };
 
+  handleSelect = (event) => {
+    event.cancelBubble = true;
+    const { selected } = this.state;
+    if (selected) return;
+    this.props.onClearSelection(() => this.setState({ selected: true }));
+  };
+
+  handleDragEnd = (event) => {
+    const { index, onTransform, points } = this.props;
+    const distanceX = Math.round(event.target.x());
+    const distanceY = Math.round(event.target.y());
+    const newPosition = points.map(([x, y]) => [x + distanceX, y + distanceY]);
+    onTransform(newPosition, TOOL_NAMES.Polygon, index);
+  };
+
   render() {
     const {
-      state: { points, isFinished, curMousePos },
+      state: { points, isFinished, curMousePos, selected },
       handleOnMouseOut,
       handleDragMove,
       handleOnFinishDraw,
+      handleSelect,
+      handleDragEnd,
+      shapeRef,
+      props,
     } = this;
 
     const flattenedPoints = points
       .concat(isFinished ? [] : curMousePos)
       .reduce((a, b) => a.concat(b), []);
+
+    let lineProps = {
+      fill: props.fill,
+      strokeWidth: props.strokeWidth,
+      stroke: props.stroke,
+    };
+    if (selected)
+      lineProps = {
+        ...lineProps,
+        shadowColor: "aqua",
+        shadowBlur: 10,
+        shadowOffsetX: 5,
+        shadowOffsetY: 5,
+      };
     return (
       <Layer>
         <KonvaLine
+          ref={shapeRef}
+          onClick={handleSelect}
           points={flattenedPoints}
-          stroke="white"
-          fill="rgba(255,255,255, 0.1)"
-          strokeWidth={5}
-          closed={isFinished}
           draggable
+          {...lineProps}
+          onDragEnd={handleDragEnd}
+          strokeWidth={10}
+          stroke="white"
+          closed={isFinished}
         />
         {!isFinished &&
           points.map((point, index) => {

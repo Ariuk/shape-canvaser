@@ -1,6 +1,7 @@
 import React from "react";
 import JsonEditor from "react-json-editor-ajrm";
 import locale from "react-json-editor-ajrm/locale/en";
+import { Button } from "antd";
 
 import Canva from "./components/Canva";
 
@@ -19,15 +20,15 @@ class App extends React.Component {
         ],
         Polygon: [
           [
-            [144, 42],
-            [278, 31],
-            [257, 172],
+            [235, 42],
+            [157, 199],
+            [365, 94],
           ],
         ],
         Line: [
           [
-            [50, 50],
-            [244, 112],
+            [68, 50],
+            [262, 112],
           ],
           [
             [585, 178],
@@ -42,6 +43,8 @@ class App extends React.Component {
 
     this.containerRef = React.createRef();
     this.jsonRef = React.createRef();
+    this.handleOnSave = this.handleOnSave.bind(this);
+    this.onConfigChange = this.onConfigChange.bind(this);
   }
 
   handleOnConfigChange = (config) => {
@@ -87,19 +90,22 @@ class App extends React.Component {
     }
   };
 
-  onConfigChange = (arg) => {};
+  onConfigChange = (arg) => {
+    console.log("arg onConfigChange:>> ", arg);
+  };
 
-  handleOnAddRectangle = (rectangle) => {
+  handleOnAddShape= (points, shape) => {
     const { data } = this.state;
-    const newRectangles = data.Rectangle;
-    newRectangles.push(rectangle);
-    this.setState({ data: { ...data, Rectangle: newRectangles } });
+    const newShapes = data[shape];
+    newShapes.push(points);
+    this.setState({ data: { ...data,  [shape]: newShapes } });
   };
 
   handleOnTransform = (points, shape, index) => {
     const { data } = this.state;
     const newShapes = data[shape];
     newShapes[index] = points;
+    console.log('newShapes handleOnTransform:>> ', newShapes);
     this.setState({ data: { ...data, [shape]: newShapes } });
   };
 
@@ -108,6 +114,10 @@ class App extends React.Component {
     const newShapes = data[shape];
     newShapes.splice(index, 1);
     this.setState({ data: { ...data, [shape]: newShapes } });
+  };
+
+  handleOnSave = () => {
+    console.log(" this.jsonRef.current):>> ", this.jsonRef.current);
   };
 
   render() {
@@ -129,6 +139,9 @@ class App extends React.Component {
             }}
             confirmGood={false}
           />
+          <Button type="primary" onClick={this.handleOnSave}>
+            Save
+          </Button>
         </div>
         <div ref={this.containerRef} className="w-1/2">
           {!!width && !!ratio && (
@@ -138,7 +151,7 @@ class App extends React.Component {
                 imgSrc={process.env.REACT_APP_DEFAULT_IMG}
                 height={width / ratio}
                 width={width}
-                onAddRectangle={this.handleOnAddRectangle}
+                onAddShape={this.handleOnAddShape}
                 onDelete={this.handleOnDelete}
                 onTransform={this.handleOnTransform}
                 toolIndex={toolIndex}
