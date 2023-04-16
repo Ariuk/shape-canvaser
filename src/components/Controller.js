@@ -11,11 +11,11 @@ export default function Controller({ onClear, onSelect, selectedIndex, onDragSta
       className: classNames[Number(selectedIndex === 0)],
     },
     {
-      icon: <Polygon color={selectedIndex === 1 && "white"} />,
+      icon: <Polygon color={selectedIndex === 1? "white" : "#33363F"} />,
       className: classNames[Number(selectedIndex === 1)],
     },
     {
-      icon: <Rectangle color={selectedIndex === 2 && "white"} />,
+      icon: <Rectangle color={selectedIndex === 2 ? "white" : "#33363F"} />,
       className: classNames[Number(selectedIndex === 2)],
     },
   ];

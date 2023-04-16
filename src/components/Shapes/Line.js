@@ -2,6 +2,7 @@ import React, {
   useRef,
   useEffect,
   useState,
+  useCallback,
   forwardRef,
   useImperativeHandle,
 } from "react";
@@ -42,23 +43,29 @@ const Line = forwardRef((props, ref) => {
     }
   }, [selected]);
 
-  const handleSelect = (event) => {
-    event.cancelBubble = true;
-    if (selected) return;
-    onClearSelection(() => select(true));
-  };
+  const handleSelect = useCallback(
+    (event) => {
+      event.cancelBubble = true;
+      if (selected) return;
+      onClearSelection(() => select(true));
+    },
+    [onClearSelection, selected]
+  );
 
-  const handleDragEnd = (event) => {
-    const distanceX = Math.round(event.target.x());
-    const distanceY = Math.round(event.target.y());
-    const newPosition = [
-      [poinsProp[0] + distanceX, poinsProp[1] + distanceY],
-      [poinsProp[2] + distanceX, poinsProp[3] + distanceY],
-    ];
-    onTransform(newPosition, TOOL_NAMES.Line, index);
-  };
+  const handleDragEnd = useCallback(
+    (event) => {
+      const distanceX = Math.round(event.target.x());
+      const distanceY = Math.round(event.target.y());
+      const newPosition = [
+        [poinsProp[0] + distanceX, poinsProp[1] + distanceY],
+        [poinsProp[2] + distanceX, poinsProp[3] + distanceY],
+      ];
+      onTransform(newPosition, TOOL_NAMES.Line, index);
+    },
+    [index, onTransform, poinsProp]
+  );
 
-  const handleTransform = () => {
+  const handleTransform = useCallback(() => {
     const node = shapeRef.current;
 
     const scaleX = node.scaleX();
@@ -99,14 +106,14 @@ const Line = forwardRef((props, ref) => {
       TOOL_NAMES.Line,
       index
     );
-  };
+  }, [index, onTransform]);
 
-  const handleTransformStart = () => {
+  const handleTransformStart = useCallback(() => {
     const node = shapeRef.current;
     node.setAttrs({
       strokeWidth: 5,
     });
-  };
+  }, []);
 
   return (
     <Layer style={{ backgroundColor: "orange" }} ref={layerRef}>

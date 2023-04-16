@@ -31,59 +31,79 @@ const Canva = (props) => {
   const lineRef = useRef(null);
   const [toolIndex, setToolIndex] = useState(-1);
 
-  const getMousePos = (stage) => {
+  const getMousePos = useCallback((stage) => {
     return [
       Math.round(stage.getPointerPosition().x),
       Math.round(stage.getPointerPosition().y),
     ];
-  };
+  }, []);
+  
 
-  const handleClick = (event) => {
-    if (!polygonRef.current && !lineRef.current) return;
-    const stage = event.target.getStage();
-    if (!!polygonRef?.current) {
-      const {
-        state: { points, isMouseOverStartPoint, isFinished },
-      } = polygonRef.current;
-      const mousePos = getMousePos(stage);
-      if (isFinished) {
-        return;
-      }
-      if (isMouseOverStartPoint && points.length >= 3) {
-        clearSelection(() => {
-          onAddShape(points, TOOL_NAMES.Polygon);
+  const clearSelection = useCallback((callback) => {
+    myRefs.current?.forEach(
+      (ref) => typeof ref?.unSelect === "function" && ref.unSelect()
+    );
+    typeof callback === "function" && callback();
+  }, []);
+
+
+  const handleOnSelectTool = useCallback((index) => {
+    setToolIndex(index);
+  }, []);
+
+  const handleClick = useCallback(
+    (event) => {
+      if (!polygonRef.current && !lineRef.current) return;
+      const stage = event.target.getStage();
+      if (!!polygonRef?.current) {
+        const {
+          state: { points, isMouseOverStartPoint, isFinished },
+        } = polygonRef.current;
+        const mousePos = getMousePos(stage);
+        if (isFinished) {
+          return;
+        }
+        if (isMouseOverStartPoint && points.length >= 3) {
+          clearSelection(() => {
+            onAddShape(points, TOOL_NAMES.Polygon);
+            handleOnSelectTool(-1);
+          });
+        } else {
+          polygonRef.current.setState({
+            points: [...points, mousePos],
+          });
+        }
+      } else if (!!lineRef?.current) {
+        const { setPoints, points } = lineRef.current;
+        const mousePos = getMousePos(stage);
+        if (Array.isArray(points) && points.length > 2) {
+          onAddShape([[points[0], points[1]], [...mousePos]], TOOL_NAMES.Line);
           handleOnSelectTool(-1);
-        });
-      } else {
-        polygonRef.current.setState({
-          points: [...points, mousePos],
-        });
+        } else {
+          setPoints([...mousePos]);
+        }
       }
-    } else if (!!lineRef?.current) {
-      const { setPoints, points } = lineRef.current;
+    },
+    [clearSelection, getMousePos, handleOnSelectTool, onAddShape]
+  );
+
+  const handleMouseMove = useCallback(
+    (event) => {
+      if (!polygonRef.current && !lineRef.current) return;
+      const stage = event.target.getStage();
       const mousePos = getMousePos(stage);
-      if (Array.isArray(points) && points.length > 2) {
-        onAddShape([[points[0], points[1]], [mousePos]], TOOL_NAMES.Line);
-        handleOnSelectTool(-1);
-      } else {
-        setPoints([...mousePos]);
+      polygonRef?.current?.setState({
+        curMousePos: mousePos,
+      });
+      if (!!lineRef.current) {
+        const { setPoints, points } = lineRef.current;
+        if (Array.isArray(points) && points.length > 0) {
+          setPoints([points[0], points[1], ...mousePos]);
+        }
       }
-    }
-  };
-  const handleMouseMove = (event) => {
-    if (!polygonRef.current && !lineRef.current) return;
-    const stage = event.target.getStage();
-    const mousePos = getMousePos(stage);
-    polygonRef?.current?.setState({
-      curMousePos: mousePos,
-    });
-    if (!!lineRef.current) {
-      const { setPoints, points } = lineRef.current;
-      if (Array.isArray(points) && points.length > 0) {
-        setPoints([points[0], points[1], ...mousePos]);
-      }
-    }
-  };
+    },
+    [getMousePos]
+  );
 
   const handleDrop = useCallback((event) => {
     if (rectangleStartData.current) {
@@ -106,9 +126,9 @@ const Canva = (props) => {
     }
   }, []);
 
-  const handleDragOver = (event) => event.preventDefault();
+  const handleDragOver = useCallback((event) => event.preventDefault(), []);
 
-  const handleDragStart = (event) => {
+  const handleDragStart = useCallback((event) => {
     const offsetX = event.nativeEvent.offsetX;
     const offsetY = event.nativeEvent.offsetY;
 
@@ -121,9 +141,9 @@ const Canva = (props) => {
       clientWidth,
       clientHeight,
     });
-  };
+  }, []);
 
-  const handleOnDelete = () => {
+  const handleOnDelete = useCallback(() => {
     const indexRef = myRefs.current.findIndex(
       (ref) => ref.selected || ref.state?.selected
     );
@@ -132,18 +152,7 @@ const Canva = (props) => {
       typeof unSelect === "function" && unSelect();
       onDelete(shape, index);
     }
-  };
-
-  const clearSelection = (callback) => {
-    myRefs.current?.forEach(
-      (ref) => typeof ref?.unSelect === "function" && ref.unSelect()
-    );
-    typeof callback === "function" && callback();
-  };
-
-  const handleOnSelectTool = (index) => {
-    setToolIndex(index);
-  };
+  }, [onDelete]);
 
   return (
     <div onDragOver={handleDragOver} onDrop={handleDrop}>

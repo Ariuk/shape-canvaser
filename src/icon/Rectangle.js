@@ -4,14 +4,12 @@ export default function Rectangle({
   width = 32,
   height = 32,
   onDragStart,
+  color = "#000000",
 }) {
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-    >
+    <div draggable onDragStart={onDragStart}>
       <svg
-        fill="#000000"
+        fill={color}
         width={width}
         height={height}
         viewBox="0 0 24 24"
