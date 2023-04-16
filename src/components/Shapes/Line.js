@@ -5,10 +5,11 @@ import React, {
   useCallback,
   forwardRef,
   useImperativeHandle,
+  useMemo,
 } from "react";
 import { Layer, Transformer, Line as KonvaLine } from "react-konva";
 
-import { TOOL_NAMES } from "../../util.consts";
+import { TOOL_NAMES, getPerpendicularPoints } from "../../util.consts";
 
 const Line = forwardRef((props, ref) => {
   const {
@@ -115,6 +116,10 @@ const Line = forwardRef((props, ref) => {
     });
   }, []);
 
+  const perpendicularData = useMemo(() => {
+    return getPerpendicularPoints(points);
+  }, [points]);
+
   return (
     <Layer style={{ backgroundColor: "orange" }} ref={layerRef}>
       <KonvaLine
@@ -128,6 +133,12 @@ const Line = forwardRef((props, ref) => {
         points={points}
         {...rest}
         strokeWidth={10}
+        stroke="white"
+      />
+      <KonvaLine
+        points={perpendicularData}
+        strokeWidth={10}
+        lineCap="butt"
         stroke="white"
       />
       {selected && (

@@ -36,7 +36,23 @@ export const getRectangularPositionAndSize = (points) => {
 export const getPointsFromRectangularPositionAndSize = (data) => {
   const { x, y, width, height } = data;
   const point1 = { x: x, y: y };
-  const point2 = { x: x+width, y: y+height };
+  const point2 = { x: x + width, y: y + height };
   const points = [point1, point2];
   return points;
+};
+
+export const getPerpendicularPoints = (points) => {
+  const dx = points[2] - points[0];
+  const dy = points[3] - points[1];
+  const width = Math.sqrt(dx * dx + dy * dy) / 2;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  const unitDx = dx / length;
+  const unitDy = dy / length;
+  const centerX = (points[0] + points[2]) / 2;
+  const centerY = (points[1] + points[3]) / 2;
+  const perpendicularDx = unitDy * (width / 2);
+  const perpendicularDy = -unitDx * (width / 2);
+  const p3 = [centerX + perpendicularDx, centerY + perpendicularDy];
+  const p4 = [centerX, centerY];
+  return [...p3, ...p4];
 };
